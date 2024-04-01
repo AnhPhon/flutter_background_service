@@ -3,12 +3,14 @@ package id.flutter.flutter_background_service;
 import static android.os.Build.VERSION.SDK_INT;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.app.AlarmManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
@@ -325,7 +327,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 try{
                     String packageName=  getPackageName();
                     Intent launchIntent= getPackageManager().getLaunchIntentForPackage(packageName);
-                    if (launchIntent != null) {
+                    if (launchIntent != null && !isActivityRunning(this, launchIntent)) {
                         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         launchIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
@@ -347,4 +349,20 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
         result.notImplemented();
     }
+
+    private boolean isActivityRunning(Context context, Intent launchIntent) {
+        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> runningTasks = activityManager.getRunningTasks(Integer.MAX_VALUE);
+
+        if (runningTasks != null) {
+            for (ActivityManager.RunningTaskInfo taskInfo : runningTasks) {
+                ComponentName componentName = taskInfo.topActivity;
+                if (componentName != null && componentName.equals(launchIntent.getComponent())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 }
